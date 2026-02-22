@@ -6,7 +6,7 @@
 
 **Author:** Alvin Liu [https://alvinliu.com](https://alvinliu.com)
 
-**Project:** [https://github.com/kjstart/db_mcp](https://github.com/kjstart/db_mcp)
+**Project:** [https://github.com/kjstart/cursor_db_mcp](https://github.com/kjstart/cursor_db_mcp)
 
 This guide is for the **Java (db_mcp)** MCP server: any database with a JDBC driver (Oracle, MySQL, PostgreSQL, SQL Server, etc.) is supported. You need **Java 11+**, **Maven 3.x** (to build), the **fat JAR** from `mvn package`, and the **JDBC driver JAR(s)** for your database. Configuration is in `config.yaml` (copy from `config.yaml.example`).
 
@@ -196,7 +196,7 @@ The fat JAR is in `target/` (filename pattern: `db-mcp-*-fat.jar`; the middle pa
 
 **作者:** Alvin Liu [https://alvinliu.com](https://alvinliu.com)
 
-**项目地址:** [https://github.com/kjstart/db_mcp](https://github.com/kjstart/db_mcp)
+**项目地址:** [https://github.com/kjstart/cursor_db_mcp](https://github.com/kjstart/cursor_db_mcp)
 
 本指南面向 **Java 版（db_mcp）** MCP 服务端：支持任意提供 JDBC 驱动的数据库（Oracle、MySQL、PostgreSQL、SQL Server 等）。需要 **Java 11+**、**Maven 3.x**（用于构建）、通过 `mvn package` 得到的 **fat JAR**，以及所用数据库的 **JDBC 驱动 JAR**。配置写在 `config.yaml` 中（可从 `config.yaml.example` 复制后修改）。
 

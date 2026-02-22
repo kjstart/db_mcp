@@ -7,7 +7,7 @@ MCP (Model Context Protocol) database server that **provides database connectivi
 
 **Author:** Alvin Liu [https://alvinliu.com](https://alvinliu.com)
 
-**Project:** [https://github.com/kjstart/db_mcp](https://github.com/kjstart/db_mcp)
+**Project:** [https://github.com/kjstart/cursor_db_mcp](https://github.com/kjstart/cursor_db_mcp)
 
 ## Features
 
@@ -188,7 +188,7 @@ Replace paths with your actual paths. After saving `mcp.json`, **fully quit and 
 
 **作者:** Alvin Liu [https://alvinliu.com](https://alvinliu.com)
 
-**项目地址:** [https://github.com/kjstart/db_mcp](https://github.com/kjstart/db_mcp)
+**项目地址:** [https://github.com/kjstart/cursor_db_mcp](https://github.com/kjstart/cursor_db_mcp)
 
 
 ## 功能
