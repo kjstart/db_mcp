@@ -3,7 +3,7 @@
 
 # Cursor Database MCP Server (Java 11 + JDBC)
 
-<img src="https://www.alvinliu.com/wp-content/uploads/2026/02/cursor_db_mcp_poster.png" alt="logo" width="360" />
+<img src="https://www.alvinliu.com/wp-content/uploads/2026/02/cursor_db_mcp_poster.jpg" alt="logo" width="360" />
 
 Allows **Cursor** and **other MCP-compatible tools** to connect to **any JDBC-supported database** (Oracle, MySQL, PostgreSQL, SQL Server, and more).
 
