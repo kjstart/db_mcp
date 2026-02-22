@@ -3,6 +3,8 @@
 
 # Cursor Database MCP Server (Java 11 + JDBC)
 
+<img src="https://www.alvinliu.com/wp-content/uploads/2026/02/cursor_db_mcp_poster.png" alt="logo" width="360" />
+
 Allows **Cursor** and **other MCP-compatible tools** to connect to **any JDBC-supported database** (Oracle, MySQL, PostgreSQL, SQL Server, and more).
 
 Includes **built-in safety checks** that ask for confirmation before running potentially dangerous SQL, helping prevent accidental data loss.
@@ -23,11 +25,11 @@ Built on **MCP (Model Context Protocol)** using **Java 11 and JDBC**. Just add t
 
 **Review and safety** — Dangerous SQL or DDL can trigger a confirmation window before execution.
 
-![db_mcp confirmation window](https://www.alvinliu.com/wp-content/uploads/2026/02/db_mcp_confirmation_window.png)
+<img src="https://www.alvinliu.com/wp-content/uploads/2026/02/db_mcp_confirmation_window.png" alt="db_mcp confirmation window" />
 
 **Logging** — Optional audit log (file rotation) and stderr console log.
 
-![db_mcp audit log](https://www.alvinliu.com/wp-content/uploads/2026/02/db_mcp_audit_log.png)
+<img src="https://www.alvinliu.com/wp-content/uploads/2026/02/db_mcp_audit_log.png" alt="db_mcp audit log" />
 
 ## Configuration
 
@@ -197,11 +199,11 @@ Replace paths with your actual paths. After saving `mcp.json`, **fully quit and 
 
 **审查与安全** — 危险 SQL 或 DDL 执行前会弹确认窗口。
 
-![db_mcp 确认窗口](https://www.alvinliu.com/wp-content/uploads/2026/02/db_mcp_confirmation_window.png)
+<img src="https://www.alvinliu.com/wp-content/uploads/2026/02/db_mcp_confirmation_window.png" alt="db_mcp 确认窗口" width="560" />
 
 **日志** — 可选审计日志（按文件轮转）和 stderr 控制台日志。
 
-![db_mcp 审计日志](https://www.alvinliu.com/wp-content/uploads/2026/02/db_mcp_audit_log.png)
+<img src="https://www.alvinliu.com/wp-content/uploads/2026/02/db_mcp_audit_log.png" alt="db_mcp 审计日志" width="560" />
 
 ## 配置
 
