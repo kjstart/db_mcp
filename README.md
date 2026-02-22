@@ -15,29 +15,19 @@ Built on **MCP (Model Context Protocol)** using **Java 11 and JDBC**. Just add t
 
 ## Features
 
-- **list_connections** — List configured database connections and their availability. Each call re-checks connections; previously failed ones are retried. Use the returned names as the `connection` argument in other tools.
-- **execute_sql** — Execute SQL on the chosen connection (multi-statement supported, semicolon-separated). Params: `sql`, optional `connection`.
-- **execute_sql_file** — Read SQL from a file, analyze, show a confirmation window when required, then execute. **Callers must use an absolute path** for `file_path`. Trailing SQL*Plus `/`-only lines are stripped.
-- **query_to_csv_file** — Run a query and write the result to a file as CSV (header + rows). Params: `sql`, `file_path` (absolute), optional `connection`.
-- **query_to_text_file** — Run a query and write the result to a file as plain text (tab-separated columns per line). Params: `sql`, `file_path` (absolute), optional `connection`.
+- **list_connections** — List configured database connections and their availability.
+- **execute_sql** — Execute SQL query and simple procedures.
+- **execute_sql_file** — Read SQL from a file to run complex SQL.
+- **query_to_csv_file** — Run a query and write the result to a file as CSV, for larger result sets.
+- **query_to_text_file** — Run a query and write the result to a file as plain text (for AI to read stored procedures).
 
-**Review and safety**
-
-- **always_review_ddl** — When `true`, all DDL (CREATE/ALTER/DROP etc.) triggers a confirmation window before execution.
-- **Danger keywords** — Two match modes: **whole_text** (substring anywhere in SQL, gatekeeper) and **command_match** (only when the SQL Parser identifies the statement as that command). Confirmation window: Windows uses PowerShell WinForms (scrollable HTML); macOS uses osascript.
+**Review and safety** — Dangerous SQL or DDL can trigger a confirmation window before execution.
 
 ![db_mcp confirmation window](https://www.alvinliu.com/wp-content/uploads/2026/02/db_mcp_confirmation_window.png)
 
-**Logging**
-
-- **audit_log** — Optional; writes each execution to a log file (e.g. 10MB rotation).
-- **mcp_console_log** — Optional; prints a short line to stderr per execute_sql / execute_sql_file (throttled).
+**Logging** — Optional audit log (file rotation) and stderr console log.
 
 ![db_mcp audit log](https://www.alvinliu.com/wp-content/uploads/2026/02/db_mcp_audit_log.png)
-
-**Connection failures**
-
-- On connection/IO errors (e.g. connection reset), the server marks that connection as unavailable and returns a clear message. Subsequent calls to that connection fast-fail until the user checks the database and calls **list_connections** again; only **list_connections** re-validates and can clear the unavailable state.
 
 ## Configuration
 
@@ -176,15 +166,9 @@ The server talks to Cursor over **stdio**. Add a **command**-type MCP server in 
 }
 ```
 
-Replace paths with your actual paths. After saving `mcp.json`, **fully quit and reopen Cursor** so the MCP reloads. You can then use `list_connections`, `execute_sql`, `execute_sql_file`, `query_to_csv_file`, and `query_to_text_file` in Cursor.
+Replace paths with your actual paths. After saving `mcp.json`, **fully quit and reopen Cursor** so the MCP reloads. Cursor can then call these tools when you chat (e.g. `list_connections`, `execute_sql`, `execute_sql_file`, `query_to_csv_file`, `query_to_text_file`).
 
 **Driver JARs** — Put your database driver JAR(s) (e.g. Oracle `ojdbc11.jar`) in `db_mcp/lib/`. The project does not ship drivers.
-
-## Analyzer and formatter (Druid)
-
-- **Parsing and formatting** — Alibaba Druid; `db_type` in each connection config selects the dialect (`mysql`, `oracle`, `postgresql`, `sql_server`, etc.).
-- **Analyzer** (`DruidSqlAnalyzer`) — Druid parse, statement type, **whole_text** substring match (last gate), **command_match** when the AST says it’s that command.
-- **Formatter** (`DruidSqlFormatter`) — `SQLUtils.toSQLString(..., dbType)`; falls back to `BaseFormatter` on parse failure. HTML highlighting via `BaseFormatter.formatHtml`.
 
 ---
 <a id="chinese"></a>
@@ -205,29 +189,19 @@ Replace paths with your actual paths. After saving `mcp.json`, **fully quit and 
 
 ## 功能
 
-- **list_connections** — 列出配置中的数据库连接及可用性。每次调用会重新检查连接，对之前失败的连接会重试。将返回的名称作为其他工具中的 `connection` 参数使用。
-- **execute_sql** — 在指定连接上执行 SQL（支持多语句，分号分隔）。参数：`sql`，可选 `connection`。
-- **execute_sql_file** — 从文件读取 SQL，分析后按需弹确认窗口，通过后执行。**调用方请对 `file_path` 使用绝对路径**。支持去除末尾仅含 `/` 的 SQL*Plus 行。
-- **query_to_csv_file** — 执行查询并将结果以 CSV（表头 + 行）写入文件。参数：`sql`、`file_path`（绝对路径）、可选 `connection`。
-- **query_to_text_file** — 执行查询并将结果以纯文本（每行制表符分隔列）写入文件。参数：`sql`、`file_path`（绝对路径）、可选 `connection`。
+- **list_connections** — 列出配置的数据库连接及可用性。
+- **execute_sql** — 执行 SQL 或简单存储过程。
+- **execute_sql_file** — 从文件读取并执行 SQL，适合较长脚本。
+- **query_to_csv_file** — 执行查询并将结果写入 CSV 文件，适合大量数据。
+- **query_to_text_file** — 执行查询并将结果写入纯文本，便于 AI 阅读（如存储过程源码）。
 
-**审查与安全**
-
-- **always_review_ddl** — 为 `true` 时，所有 DDL（CREATE/ALTER/DROP 等）执行前会弹出确认窗口。
-- **危险词** — 两种匹配方式：**whole_text**（SQL 中任意子串，焊门员）、**command_match**（仅当SQL解析器判定为该命令时）。确认窗口：Windows 使用 PowerShell WinForms（可滚动 HTML）；macOS 使用 osascript。
+**审查与安全** — 危险 SQL 或 DDL 执行前会弹确认窗口。
 
 ![db_mcp 确认窗口](https://www.alvinliu.com/wp-content/uploads/2026/02/db_mcp_confirmation_window.png)
 
-**日志**
-
-- **audit_log** — 可选；将每次执行写入日志文件（如 10MB 轮转）。
-- **mcp_console_log** — 可选；每笔 execute_sql / execute_sql_file 在 stderr 打一行简短日志（节流）。
+**日志** — 可选审计日志（按文件轮转）和 stderr 控制台日志。
 
 ![db_mcp 审计日志](https://www.alvinliu.com/wp-content/uploads/2026/02/db_mcp_audit_log.png)
-
-**连接失败**
-
-- 发生连接/IO 错误（如 connection reset）时，服务端会将该连接标记为不可用并返回明确提示。之后对该连接的调用会快速失败，直到用户确认数据库可用并再次调用 **list_connections**；只有 **list_connections** 会重新校验并可能清除不可用状态。
 
 ## 配置
 
@@ -366,12 +340,6 @@ Fat JAR 含本工程及 snakeyaml、gson 等，**不含** JDBC 驱动。将 fat 
 }
 ```
 
-将路径改为本机实际路径。保存 `mcp.json` 后**完全退出并重新打开 Cursor**，MCP 才会重新加载。之后可在 Cursor 中使用 `list_connections`、`execute_sql`、`execute_sql_file`、`query_to_csv_file`、`query_to_text_file`。
+将路径改为本机实际路径。保存 `mcp.json` 后**完全退出并重新打开 Cursor**，MCP 才会重新加载。之后 Cursor 在对话时即可调用这些工具（如 `list_connections`、`execute_sql`、`execute_sql_file`、`query_to_csv_file`、`query_to_text_file`）。
 
 **驱动 JAR** — 将所用数据库的驱动 JAR（如 Oracle `ojdbc11.jar`）放入 `db_mcp/lib/`。本工程不随包发布驱动。
-
-## 分析器与格式化（Druid）
-
-- **解析与格式化** — 使用 Alibaba Druid；各连接配置中的 `db_type` 选择方言（`mysql`、`oracle`、`postgresql`、`sql_server` 等）。
-- **分析器**（`DruidSqlAnalyzer`）— Druid 解析、语句类型、**whole_text** 子串匹配（最后一道关）、**command_match** 仅当 AST 判定为该命令时匹配。
-- **格式化**（`DruidSqlFormatter`）— `SQLUtils.toSQLString(..., dbType)`；解析失败时回退到 `BaseFormatter`。HTML 高亮通过 `BaseFormatter.formatHtml`。
