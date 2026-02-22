@@ -3,7 +3,11 @@
 
 # Cursor Database MCP Server (Java 11 + JDBC)
 
-MCP (Model Context Protocol) database server that **provides database connectivity for Cursor and other MCP-compatible products**. Built on **Java 11** and **JDBC**: any database with a JDBC driver can be used (Oracle, MySQL, PostgreSQL, SQL Server, etc.). The server uses **Alibaba Druid** for connection pooling and SQL parsing; it relies on standard `java.sql.*` and does not call `DriverManager` directly. Add the driver JAR to the classpath (or `pom.xml`) and set `driver` and `url` in config to run.
+Allows **Cursor** and **other MCP-compatible tools** to connect to **any JDBC-supported database** (Oracle, MySQL, PostgreSQL, SQL Server, and more).
+
+Includes **built-in safety checks** that ask for confirmation before running potentially dangerous SQL, helping prevent accidental data loss.
+
+Built on **MCP (Model Context Protocol)** using **Java 11 and JDBC**. Just add the JDBC driver JAR and configure your database connection to get started.
 
 **Author:** Alvin Liu [https://alvinliu.com](https://alvinliu.com)
 
@@ -184,7 +188,11 @@ Replace paths with your actual paths. After saving `mcp.json`, **fully quit and 
 
 # Cursor Database MCP Server（Java 11 + JDBC）
 
-为 **Cursor** 等支持 MCP 的产品提供**数据库连接能力**的 MCP（Model Context Protocol）数据库服务端。基于 **Java 11** 和 **JDBC**：任意提供 JDBC 驱动的数据库均可接入（Oracle、MySQL、PostgreSQL、SQL Server 等）。主程序使用 **Alibaba Druid** 作为连接池与 SQL 解析，不直接调用 `DriverManager`；将驱动 JAR 放入 classpath（或 `pom.xml`），在配置中设置 `driver` 和 `url` 即可运行。
+支持 **Cursor** 及其他 **MCP 兼容工具** 连接任何 **支持 JDBC 的数据库**，包括 Oracle、MySQL、PostgreSQL、SQL Server 等，无需针对不同数据库做额外适配。
+
+**内置 SQL 安全校验机制**，在执行可能存在风险的 SQL 操作前会主动请求确认，帮助避免误操作导致的数据丢失。
+
+基于 **MCP（Model Context Protocol）** 构建，使用 **Java 11 + JDBC** 实现。只需将对应的 JDBC Driver JAR 加入运行环境，并配置数据库连接即可使用。
 
 **作者:** Alvin Liu [https://alvinliu.com](https://alvinliu.com)
 
