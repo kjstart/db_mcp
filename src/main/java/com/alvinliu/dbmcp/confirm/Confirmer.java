@@ -90,7 +90,8 @@ public class Confirmer {
             if (html == null || html.isBlank() || !html.trim().startsWith("<")) {
                 html = sqlToHtml(req.getSql());
             }
-            html = highlightMatchedKeywords(html, req.getMatchedKeywords(), req.getMatchedActions());
+            List<String> keywordsForHighlight = req.getMatchedKeywordsForHighlight() != null ? req.getMatchedKeywordsForHighlight() : req.getMatchedKeywords();
+            html = highlightMatchedKeywords(html, keywordsForHighlight, req.getMatchedActions());
             Files.writeString(htmlPath, html, StandardCharsets.UTF_8);
             Files.writeString(headerPath, buildHeader(req), StandardCharsets.UTF_8);
             Files.writeString(scriptPath, PS1_SCRIPT, StandardCharsets.UTF_8);

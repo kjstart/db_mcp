@@ -7,7 +7,8 @@ import java.util.List;
  */
 public class ConfirmRequest {
     private String sql;
-    private List<String> matchedKeywords;   // whole_text_match: for "Keywords" on dialog
+    private List<String> matchedKeywords;   // whole_text_match: for "Keywords" on dialog (union of original + formatted hits)
+    private List<String> matchedKeywordsForHighlight; // whole_text_match: only hits on formatted text, for highlighting in HTML
     private List<String> matchedActions;     // command_match: for "Action" on dialog
     private String statementType;            // backward compat / first action
     private boolean ddl;
@@ -23,6 +24,9 @@ public class ConfirmRequest {
 
     public List<String> getMatchedKeywords() { return matchedKeywords; }
     public void setMatchedKeywords(List<String> matchedKeywords) { this.matchedKeywords = matchedKeywords; }
+
+    public List<String> getMatchedKeywordsForHighlight() { return matchedKeywordsForHighlight; }
+    public void setMatchedKeywordsForHighlight(List<String> matchedKeywordsForHighlight) { this.matchedKeywordsForHighlight = matchedKeywordsForHighlight; }
 
     public List<String> getMatchedActions() { return matchedActions; }
     public void setMatchedActions(List<String> matchedActions) { this.matchedActions = matchedActions; }

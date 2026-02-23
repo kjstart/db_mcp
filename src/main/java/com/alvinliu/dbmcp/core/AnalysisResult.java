@@ -9,7 +9,8 @@ public class AnalysisResult {
     private String originalSQL;
     private String normalizedSQL;
     private List<String> tokens;
-    private List<String> matchedKeywords;   // whole_text_match: keywords found in full SQL
+    private List<String> matchedKeywords;   // whole_text_match: union of hits on original + formatted (for review trigger and dialog)
+    private List<String> matchedKeywordsForHighlight; // whole_text_match: hits on formatted text only (for highlighting on formatted HTML)
     private List<String> matchedActions;    // command_match: statement types that matched (e.g. DELETE, UPDATE)
     private boolean dangerous;
     private boolean ddl;
@@ -32,6 +33,9 @@ public class AnalysisResult {
 
     public List<String> getMatchedKeywords() { return matchedKeywords; }
     public void setMatchedKeywords(List<String> matchedKeywords) { this.matchedKeywords = matchedKeywords; }
+
+    public List<String> getMatchedKeywordsForHighlight() { return matchedKeywordsForHighlight; }
+    public void setMatchedKeywordsForHighlight(List<String> matchedKeywordsForHighlight) { this.matchedKeywordsForHighlight = matchedKeywordsForHighlight; }
 
     public List<String> getMatchedActions() { return matchedActions; }
     public void setMatchedActions(List<String> matchedActions) { this.matchedActions = matchedActions; }

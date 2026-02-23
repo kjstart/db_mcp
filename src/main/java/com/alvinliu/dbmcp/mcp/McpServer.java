@@ -300,6 +300,7 @@ public class McpServer {
             req.setSql(analysis.getPreviewSql() != null ? analysis.getPreviewSql() : sql);
             req.setFormattedHtml(pool.getFormatter(connKey).formatHtmlPreserveLayout(analysis.getPreviewSql() != null ? analysis.getPreviewSql() : sql));
             req.setMatchedKeywords(analysis.getMatchedKeywords());
+            req.setMatchedKeywordsForHighlight(analysis.getMatchedKeywordsForHighlight());
             req.setMatchedActions(analysis.getMatchedActions());
             req.setStatementType(analysis.getStatementType());
             req.setDdl(analysis.isDdl());
@@ -379,6 +380,7 @@ public class McpServer {
             req.setSql(analysis.getPreviewSql() != null ? analysis.getPreviewSql() : sql);
             req.setFormattedHtml(pool.getFormatter(connForFormatter).formatHtmlPreserveLayout(analysis.getPreviewSql() != null ? analysis.getPreviewSql() : sql));
             req.setMatchedKeywords(analysis.getMatchedKeywords());
+            req.setMatchedKeywordsForHighlight(analysis.getMatchedKeywordsForHighlight());
             req.setMatchedActions(analysis.getMatchedActions());
             req.setStatementType(analysis.getStatementType());
             req.setDdl(analysis.isDdl());

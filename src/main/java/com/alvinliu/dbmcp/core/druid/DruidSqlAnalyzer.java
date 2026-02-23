@@ -38,6 +38,7 @@ public class DruidSqlAnalyzer implements SqlAnalyzer {
 
         if (sql == null || sql.isBlank()) {
             r.setMatchedKeywords(Collections.emptyList());
+            r.setMatchedKeywordsForHighlight(Collections.emptyList());
             r.setMatchedActions(Collections.emptyList());
             r.setNormalizedSQL("");
             r.setPreviewSql("");
@@ -58,10 +59,21 @@ public class DruidSqlAnalyzer implements SqlAnalyzer {
                 parseFailedRequireReview(r, trimmed);
                 return r;
             }
-            // Parse OK: preview uses Druid serialized result; run both keyword matches on it so highlighting aligns
+            // 1) whole_text_match on original -> review keywords (trigger review if hit)
+            List<String> matchedOnOriginal = new ArrayList<>(DangerKeywordMatcher.matchWholeText(trimmed, dangerKeywordsWholeText));
+            matchedOnOriginal.addAll(DangerKeywordMatcher.matchWholeText(trimmed, dangerKeywordsAst));
+            dedupeKeywords(matchedOnOriginal);
+            // 2) After format: whole_text_match on formatted text again; use for highlight on formatted HTML
             String formattedSql = SQLUtils.toSQLString(stmts, dbType).trim();
-            List<String> matchedKeywords = new ArrayList<>(DangerKeywordMatcher.matchWholeText(formattedSql, dangerKeywordsWholeText));
-            matchedKeywords.addAll(DangerKeywordMatcher.matchWholeText(formattedSql, dangerKeywordsAst));
+            List<String> matchedOnFormatted = new ArrayList<>(DangerKeywordMatcher.matchWholeText(formattedSql, dangerKeywordsWholeText));
+            matchedOnFormatted.addAll(DangerKeywordMatcher.matchWholeText(formattedSql, dangerKeywordsAst));
+            dedupeKeywords(matchedOnFormatted);
+            // 3) Either hit triggers review; merge for dialog display; highlight only on formatted-text hits
+            List<String> matchedKeywords = new ArrayList<>(matchedOnOriginal);
+            for (String kw : matchedOnFormatted) {
+                if (kw != null && !kw.isBlank() && matchedKeywords.stream().noneMatch(k -> k != null && k.trim().equalsIgnoreCase(kw.trim())))
+                    matchedKeywords.add(kw);
+            }
             dedupeKeywords(matchedKeywords);
             boolean multiStatement = stmts.size() > 1;
             List<String> matchedActions = new ArrayList<>();
@@ -77,6 +89,7 @@ public class DruidSqlAnalyzer implements SqlAnalyzer {
             String firstType = firstTypeRef[0];
 
             r.setMatchedKeywords(matchedKeywords);
+            r.setMatchedKeywordsForHighlight(matchedOnFormatted);
             r.setMatchedActions(matchedActions);
             r.setNormalizedSQL(formattedSql);
             r.setPreviewSql(formattedSql);
@@ -98,7 +111,9 @@ public class DruidSqlAnalyzer implements SqlAnalyzer {
     private void parseFailedRequireReview(AnalysisResult r, String trimmed) {
         List<String> merged = new ArrayList<>(dangerKeywordsWholeText);
         merged.addAll(dangerKeywordsAst);
-        r.setMatchedKeywords(new ArrayList<>(DangerKeywordMatcher.matchWholeText(trimmed, merged)));
+        List<String> onOriginal = new ArrayList<>(DangerKeywordMatcher.matchWholeText(trimmed, merged));
+        r.setMatchedKeywords(onOriginal);
+        r.setMatchedKeywordsForHighlight(onOriginal); // highlight on preview (original) when parse failed
         r.setMatchedActions(Collections.emptyList());
         r.setNormalizedSQL(trimmed);
         r.setPreviewSql(trimmed);
