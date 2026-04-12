@@ -12,8 +12,12 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * SQL analyzer using Alibaba Druid: parse + statement type + whole_text/command_match.
@@ -88,6 +92,9 @@ public class DruidSqlAnalyzer implements SqlAnalyzer {
             boolean containsPLSQL = containsPLSQLRef[0];
             String firstType = firstTypeRef[0];
 
+            List<String> explicitSchemas = detectExplicitSchemas(trimmed);
+            r.setExplicitSchemas(explicitSchemas);
+            r.setHasExplicitSchema(!explicitSchemas.isEmpty());
             r.setMatchedKeywords(matchedKeywords);
             r.setMatchedKeywordsForHighlight(matchedOnFormatted);
             r.setMatchedActions(matchedActions);
@@ -112,6 +119,9 @@ public class DruidSqlAnalyzer implements SqlAnalyzer {
         List<String> merged = new ArrayList<>(dangerKeywordsWholeText);
         merged.addAll(dangerKeywordsAst);
         List<String> onOriginal = new ArrayList<>(DangerKeywordMatcher.matchWholeText(trimmed, merged));
+        List<String> explicitSchemas = detectExplicitSchemas(trimmed);
+        r.setExplicitSchemas(explicitSchemas);
+        r.setHasExplicitSchema(!explicitSchemas.isEmpty());
         r.setMatchedKeywords(onOriginal);
         r.setMatchedKeywordsForHighlight(onOriginal); // highlight on preview (original) when parse failed
         r.setMatchedActions(Collections.emptyList());
@@ -122,8 +132,8 @@ public class DruidSqlAnalyzer implements SqlAnalyzer {
         r.setContainsPLSQL(false);
         r.setPlsqlCreationDDL(false);
         r.setDdl(true);
-            r.setStatementType("UNKNOWN");
-            r.setDangerous(true);
+        r.setStatementType("UNKNOWN");
+        r.setDangerous(true);
     }
 
     /** Dedupe by case-insensitive key, keep first occurrence. */
@@ -203,6 +213,42 @@ public class DruidSqlAnalyzer implements SqlAnalyzer {
             matchedActions.add(t);
         }
         if (isDdl(stmt)) ddlRef[0] = true;
+    }
+
+    /** Regex to detect schema-qualified object references (e.g. hr.employees) after SQL keywords. */
+    private static final Pattern EXPLICIT_SCHEMA_PATTERN = Pattern.compile(
+        "(?i)\\b(?:from|join|update|insert\\s+into|merge\\s+into|delete\\s+from|truncate\\s+table" +
+        "|create(?:\\s+or\\s+replace)?\\s+(?:table|view|index|sequence|trigger|procedure|function|package)" +
+        "|alter\\s+(?:table|view|index|sequence|trigger|procedure|function|package)" +
+        "|drop\\s+(?:table|view|index|sequence|trigger|procedure|function|package)" +
+        "|comment\\s+on\\s+(?:table|column)|rename)\\s+" +
+        "(\"[^\"]+\"|[a-zA-Z_][a-zA-Z0-9_$#]*)\\s*\\.\\s*(\"[^\"]+\"|[a-zA-Z_][a-zA-Z0-9_$#]*)"
+    );
+
+    /**
+     * Detect schema-qualified object references (like hr.employees) in the SQL.
+     * Returns unique schema names found; empty list if none detected.
+     */
+    private static List<String> detectExplicitSchemas(String sql) {
+        Matcher m = EXPLICIT_SCHEMA_PATTERN.matcher(sql);
+        Map<String, String> seen = new LinkedHashMap<>();
+        while (m.find()) {
+            String raw = m.group(1);
+            if (raw == null || raw.isEmpty()) continue;
+            String schema = normalizeSchemaName(raw);
+            if (schema.isEmpty()) continue;
+            seen.putIfAbsent(schema.toLowerCase(), schema);
+        }
+        return new ArrayList<>(seen.values());
+    }
+
+    private static String normalizeSchemaName(String name) {
+        if (name == null) return "";
+        name = name.trim();
+        if (name.startsWith("\"") && name.endsWith("\"") && name.length() >= 2) {
+            return name.substring(1, name.length() - 1);
+        }
+        return name.toLowerCase();
     }
 
     /** If stmt has getStatementList (e.g. PL/SQL block), return inner list; else null. */

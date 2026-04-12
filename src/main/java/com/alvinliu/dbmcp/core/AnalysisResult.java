@@ -21,6 +21,10 @@ public class AnalysisResult {
     /** SQL to show in preview: Druid formatted when parse succeeded, original when failed. */
     private String previewSql;
     private boolean parseSucceeded;
+    /** Schema names detected in schema-qualified object references like hr.employees. */
+    private List<String> explicitSchemas;
+    /** True when at least one schema-qualified object reference was detected. */
+    private boolean hasExplicitSchema;
 
     public String getOriginalSQL() { return originalSQL; }
     public void setOriginalSQL(String originalSQL) { this.originalSQL = originalSQL; }
@@ -62,4 +66,10 @@ public class AnalysisResult {
     public void setPreviewSql(String previewSql) { this.previewSql = previewSql; }
     public boolean isParseSucceeded() { return parseSucceeded; }
     public void setParseSucceeded(boolean parseSucceeded) { this.parseSucceeded = parseSucceeded; }
+
+    public List<String> getExplicitSchemas() { return explicitSchemas; }
+    public void setExplicitSchemas(List<String> explicitSchemas) { this.explicitSchemas = explicitSchemas; }
+
+    public boolean isHasExplicitSchema() { return hasExplicitSchema; }
+    public void setHasExplicitSchema(boolean hasExplicitSchema) { this.hasExplicitSchema = hasExplicitSchema; }
 }

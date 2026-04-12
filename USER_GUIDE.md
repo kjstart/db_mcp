@@ -60,6 +60,8 @@ This guide covers the **db_mcp** MCP server for **any MCP-compatible AI client**
    - **user** / **password** — Optional if encoded in the URL.
    - **db_type** (optional) — Database type for SQL parsing/formatting (Druid dialect). Default is `mysql` if omitted. See **db_type reference** below.
 
+   > **Credential encryption:** On first startup, the server automatically encrypts the plain-text `url`, `user`, and `password` values in `config.yaml`. Subsequent startups decrypt them transparently — no manual steps needed.
+
    **db_type reference (Druid DbType)** — In config use the **db_type** value in lower case. Full source: [Druid DbType](https://github.com/alibaba/druid/blob/master/src/main/java/com/alibaba/druid/DbType.java). Examples by category:
 
    | Category | Examples (full name → db_type) |
@@ -268,7 +270,7 @@ Add a new MCP server called 'db-mcp' using stdio. The command is 'java', the arg
 ## 5. Tools and behaviour
 
 - **list_connections** — List configured connection names, availability, and `db_type`. Each call re-checks connections; previously failed ones are retried. Use the returned names as the `connection` argument in other tools.
-- **execute_sql** — Run SQL on the chosen connection (multi-statement, semicolon-separated). Supports JDBC escape `{ call proc() }` / `{ ? = call func(?) }` for stored procedures/functions; on Oracle only, anonymous blocks (`BEGIN...END`, `DECLARE...BEGIN...END`) are supported. Params: `sql`, optional `connection`. Some SQL may require user approval; if rejected, the client receives an execution-cancelled result.
+- **execute_sql** — Run SQL on the chosen connection (multi-statement, semicolon-separated). Supports JDBC escape `{ call proc() }` / `{ ? = call func(?) }` for stored procedures/functions; on Oracle only, anonymous blocks (`BEGIN...END`, `DECLARE...BEGIN...END`) are supported. Params: `sql`, optional `connection`. Some SQL may require user approval; if rejected, the client receives an execution-cancelled result. Schema-qualified object names (e.g. `hr.employees`) are not allowed and will be rejected.
 - **execute_sql_file** — Read SQL from a file, apply the same rules as `execute_sql`, then execute. **Callers must use an absolute path** for `file_path`. Trailing SQL*Plus `/`-only lines are stripped. Params: `file_path`, optional `connection`.
 - **query_to_csv_file** — Run a query and write the result to a file as CSV (header + rows, UTF-8). Params: `sql`, `file_path` (absolute), optional `connection`.
 - **query_to_text_file** — Run a query and write the result to a file as plain text (tab-separated columns per line). Params: `sql`, `file_path` (absolute), optional `connection`.
@@ -352,6 +354,8 @@ Add a new MCP server called 'db-mcp' using stdio. The command is 'java', the arg
    - **url** — JDBC URL（如 `jdbc:oracle:thin:@//host:1521/ORCL`、`jdbc:mysql://localhost:3306/mydb`）。
    - **user** / **password** — 若已在 URL 中编码可省略。
    - **db_type**（可选）— 用于 SQL 解析与格式化的数据库类型（Druid 方言）。不填时默认为 `mysql`。见下方 **db_type 对照**。
+
+   > **连接信息自动加密：** 首次启动时，服务端会自动将 `config.yaml` 中明文的 `url`、`user`、`password` 加密写回文件，后续启动透明解密，无需手动操作。
 
    **db_type 对照（Druid DbType）** — 配置中填写小写的 **db_type** 取值。完整枚举见 [Druid DbType](https://github.com/alibaba/druid/blob/master/src/main/java/com/alibaba/druid/DbType.java)。按分类示例：
 
@@ -561,7 +565,7 @@ Add a new MCP server called 'db-mcp' using stdio. The command is 'java', the arg
 ## 5. 工具与行为
 
 - **list_connections** — 列出已配置连接名称、可用性及 `db_type`。每次调用会重新检查连接，对之前失败的连接会重试。将返回的名称作为其他工具的 `connection` 参数使用。
-- **execute_sql** — 在指定连接上执行 SQL（支持多语句，分号分隔）。支持 JDBC 转义 `{ call proc() }` / `{ ? = call func(?) }` 调用存储过程/函数；仅 Oracle 支持匿名块（`BEGIN...END`、`DECLARE...BEGIN...END`）。参数：`sql`，可选 `connection`。部分 SQL 可能需用户确认；若用户拒绝，客户端会收到执行已取消的结果。
+- **execute_sql** — 在指定连接上执行 SQL（支持多语句，分号分隔）。支持 JDBC 转义 `{ call proc() }` / `{ ? = call func(?) }` 调用存储过程/函数；仅 Oracle 支持匿名块（`BEGIN...END`、`DECLARE...BEGIN...END`）。参数：`sql`，可选 `connection`。部分 SQL 可能需用户确认；若用户拒绝，客户端会收到执行已取消的结果。不允许使用 schema 限定名（如 `hr.employees`），否则会被拒绝执行。
 - **execute_sql_file** — 从文件读取 SQL，应用与 `execute_sql` 相同规则后执行。**调用方请对 `file_path` 使用绝对路径**。末尾仅含 `/` 的 SQL*Plus 行会被去除。参数：`file_path`，可选 `connection`。
 - **query_to_csv_file** — 执行查询并将结果以 CSV（表头 + 行，UTF-8）写入文件。参数：`sql`、`file_path`（绝对路径）、可选 `connection`。
 - **query_to_text_file** — 执行查询并将结果以纯文本（每行制表符分隔列）写入文件。参数：`sql`、`file_path`（绝对路径）、可选 `connection`。

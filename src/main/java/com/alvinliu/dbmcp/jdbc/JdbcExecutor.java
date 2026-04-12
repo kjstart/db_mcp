@@ -26,14 +26,16 @@ public final class JdbcExecutor {
             result.setExecutionTimeMs(System.currentTimeMillis() - start);
             return result;
         }
-        String[] statements;
-        if (isPlsqlDdl(sql)) {
-            statements = new String[] { sql };
-        } else if (isOracle(conn) && isOracleAnonymousBlock(sql)) {
-            sql = stripTrailingSlashLine(sql).trim();
-            statements = sql.isEmpty() ? new String[0] : new String[] { sql };
+        // Order: (1) "/" lines split like SQL*Plus/SQLcl, (2) single PL/SQL block, (3) ";" split
+        sql = stripTrailingSlashLine(sql).trim();
+        List<String> statements;
+        if (hasStandaloneSlashLine(sql)) {
+            statements = new ArrayList<>();
+            for (String chunk : splitBySlashLines(sql)) {
+                statements.addAll(expandStatementSegment(conn, chunk));
+            }
         } else {
-            statements = splitStatements(sql);
+            statements = expandStatementSegment(conn, sql);
         }
         ExecutionResult last = null;
         for (String stmt : statements) {
@@ -68,11 +70,117 @@ public final class JdbcExecutor {
         }
     }
 
-    /** True if SQL is an Oracle PL/SQL anonymous block (BEGIN...END or DECLARE...BEGIN...END). */
+    /**
+     * True if SQL is an Oracle PL/SQL anonymous block (BEGIN...END or DECLARE...BEGIN...END).
+     * Leading blank lines and line-comment-only lines are stripped before checking.
+     */
     private static boolean isOracleAnonymousBlock(String sql) {
         if (sql == null) return false;
-        String u = sql.trim().toUpperCase();
-        return u.startsWith("BEGIN") || u.startsWith("DECLARE");
+        String trimmed = trimLeadingLineComments(sql).trim();
+        if (trimmed.isEmpty()) return false;
+        if (trimmed.endsWith(";")) trimmed = trimmed.substring(0, trimmed.length() - 1);
+        String lower = trimmed.toLowerCase();
+        boolean hasEnd = lower.contains(" end ") || lower.endsWith(" end") || looksLikePlsqlBlockEnd(lower);
+        return (lower.startsWith("begin") || lower.startsWith("declare")) && hasEnd;
+    }
+
+    /**
+     * Remove leading blank lines and lines that are only "--" line comments.
+     */
+    private static String trimLeadingLineComments(String sql) {
+        if (sql == null) return "";
+        String s = sql.replace("\r\n", "\n").replace("\r", "\n").trim();
+        String[] lines = s.split("\n", -1);
+        int start = 0;
+        for (int i = 0; i < lines.length; i++) {
+            String t = lines[i].trim();
+            if (t.isEmpty() || t.startsWith("--")) {
+                start = i + 1;
+            } else {
+                break;
+            }
+        }
+        if (start >= lines.length) return "";
+        StringBuilder sb = new StringBuilder();
+        for (int i = start; i < lines.length; i++) {
+            if (i > start) sb.append('\n');
+            sb.append(lines[i]);
+        }
+        return sb.toString().trim();
+    }
+
+    /**
+     * True when the last non-empty line is the block-closing END or END label,
+     * but not END IF / END LOOP / END CASE.
+     */
+    private static boolean looksLikePlsqlBlockEnd(String lower) {
+        if (lower == null || lower.isEmpty()) return false;
+        String[] lines = lower.split("\n", -1);
+        String last = "";
+        for (int i = lines.length - 1; i >= 0; i--) {
+            String t = lines[i].trim();
+            if (!t.isEmpty()) { last = t; break; }
+        }
+        if (last.isEmpty()) return false;
+        if (last.equals("end")) return true;
+        if (!last.startsWith("end ")) return false;
+        String rest = last.substring(4).trim();
+        if (rest.isEmpty()) return true;
+        String first = rest.split("\\s+")[0];
+        switch (first) {
+            case "if": case "loop": case "case": return false;
+            default: return true; // END some_label
+        }
+    }
+
+    /** True if any line in the SQL is only "/" (SQL*Plus run buffer command). */
+    private static boolean hasStandaloneSlashLine(String sql) {
+        if (sql == null) return false;
+        for (String line : sql.split("\n", -1)) {
+            if (line.trim().equals("/")) return true;
+        }
+        return false;
+    }
+
+    /** Split a script on standalone "/" lines (SQL*Plus run buffer). Empty segments are skipped. */
+    private static List<String> splitBySlashLines(String sql) {
+        List<String> parts = new ArrayList<>();
+        StringBuilder current = new StringBuilder();
+        boolean firstLine = true;
+        for (String line : sql.split("\n", -1)) {
+            if (line.trim().equals("/")) {
+                String p = current.toString().trim();
+                if (!p.isEmpty()) parts.add(p);
+                current.setLength(0);
+                firstLine = true;
+                continue;
+            }
+            if (!firstLine) current.append('\n');
+            current.append(line);
+            firstLine = false;
+        }
+        String p = current.toString().trim();
+        if (!p.isEmpty()) parts.add(p);
+        return parts;
+    }
+
+    /** Expand one script segment (between "/" lines) into executable statements. */
+    private static List<String> expandStatementSegment(Connection conn, String sql) {
+        if (sql == null || sql.trim().isEmpty()) return List.of();
+        if (hasStandaloneSlashLine(sql)) {
+            List<String> out = new ArrayList<>();
+            for (String chunk : splitBySlashLines(sql)) {
+                out.addAll(expandStatementSegment(conn, chunk));
+            }
+            return out;
+        }
+        if (isPlsqlDdl(sql)) return List.of(sql);
+        if (isOracle(conn) && isOracleAnonymousBlock(sql)) return List.of(sql);
+        List<String> result = new ArrayList<>();
+        for (String s : splitStatements(sql)) {
+            if (!s.trim().isEmpty()) result.add(s);
+        }
+        return result;
     }
 
     /** Remove trailing lines that are only "/" (SQL*Plus execute buffer command). */

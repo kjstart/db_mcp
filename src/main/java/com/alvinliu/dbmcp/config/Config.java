@@ -3,9 +3,6 @@ package com.alvinliu.dbmcp.config;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Root configuration (YAML). Naming aligned with Go version where applicable.
- */
 public class Config {
     private List<ConnectionEntry> connections = new ArrayList<>();
     private SecurityConfig review = new SecurityConfig();

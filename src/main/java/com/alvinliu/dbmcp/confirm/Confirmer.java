@@ -10,7 +10,6 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * Human-in-the-loop confirmation: Windows = PowerShell WinForms (HTML SQL), Darwin = osascript dialog.
- * Same behavior as Go version.
  */
 public class Confirmer {
 
@@ -228,7 +227,7 @@ public class Confirmer {
     }
 
     /**
-     * Match Go: show raw SQL with original line breaks. Normalize line endings to \\n, then to HTML (\\n-><br>, space->&nbsp;);
+     * Show raw SQL with original line breaks. Normalize line endings to \n, then to HTML (\n->&lt;br&gt;, space-&amp;nbsp;);
      * container uses white-space: pre-wrap to preserve layout.
      */
     private static String sqlToHtml(String sql) {

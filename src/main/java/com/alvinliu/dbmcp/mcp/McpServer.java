@@ -25,11 +25,12 @@ import java.util.*;
 
 /**
  * MCP server: JSON-RPC 2.0 over stdio. Tools: list_connections, execute_sql, execute_sql_file, query_to_csv_file, query_to_text_file.
- * Supports require_confirm_for_ddl, danger_keywords confirmation, audit log, verbose stderr (same as Go version).
+ * Supports require_confirm_for_ddl, danger_keywords confirmation, audit log, verbose stderr.
  */
 public class McpServer {
     private static final String PROTOCOL_VERSION = "2024-11-05";
     private static final int ERR_CODE_USER_REJECTED = -32000;
+    private static final int ERR_CODE_SCHEMA_QUALIFIED = -32004;
     private static final Gson GSON = new GsonBuilder().serializeNulls().create();
     private static final Type MAP_TYPE = new TypeToken<Map<String, Object>>() {}.getType();
 
@@ -124,16 +125,16 @@ public class McpServer {
         List<Map<String, Object>> tools = new ArrayList<>();
         tools.add(tool(
             "execute_sql",
-            "Execute SQL against the configured database. When multiple connections are configured, use the 'connection' argument (call list_connections to see names). Supports standard SQL (SELECT/INSERT/UPDATE/DELETE/DDL) and vendor-neutral stored procedure/function calls using JDBC escape syntax, e.g. \"{ call my_procedure() }\" or \"{ ? = call my_function(?) }\". For Oracle only, anonymous blocks (BEGIN...END or DECLARE...BEGIN...END) are supported; for other databases use stored procedure/function and call via \"{ call proc_name() }\". Some SQL may require user approval; if rejected, you will receive an execution cancelled result.",
+            "Execute SQL against the configured database. When multiple connections are configured, use the 'connection' argument (call list_connections to see names). Supports standard SQL (SELECT/INSERT/UPDATE/DELETE/DDL) and vendor-neutral stored procedure/function calls using JDBC escape syntax, e.g. \"{ call my_procedure() }\" or \"{ ? = call my_function(?) }\". For Oracle only, anonymous blocks (BEGIN...END or DECLARE...BEGIN...END) are supported; for other databases use stored procedure/function and call via \"{ call proc_name() }\". Some SQL may require user approval; if rejected, you will receive an execution cancelled result. Do not specify schema-qualified object names such as hr.employees.",
             Map.of(
-                "sql", prop("string", "SQL to run. For normal SQL, use one or multiple statements separated by semicolons. For Oracle, anonymous blocks (BEGIN...END or DECLARE...BEGIN...END) are supported. For stored procedures/functions on any database, use JDBC escape syntax \"{ call proc_name() }\" or \"{ ? = call func_name(?) }\". On non-Oracle databases do not send anonymous blocks; use procedures/functions and call them."),
+                "sql", prop("string", "SQL to run. For normal SQL, use one or multiple statements separated by semicolons. For Oracle, anonymous blocks (BEGIN...END or DECLARE...BEGIN...END) are supported. For stored procedures/functions on any database, use JDBC escape syntax \"{ call proc_name() }\" or \"{ ? = call func_name(?) }\". On non-Oracle databases do not send anonymous blocks; use procedures/functions and call them. Do not specify schema-qualified object names such as hr.employees."),
                 "connection", prop("string", "Which configured database to use. Required when multiple connections; omit when only one.")
             ),
             List.of("sql")
         ));
         tools.add(tool(
             "execute_sql_file",
-            "Read SQL from a file and execute it. Same rules as execute_sql. File path is relative to server working directory unless absolute.",
+            "Read SQL from a file and execute it. Same rules as execute_sql. File path is relative to server working directory unless absolute. SQL in the file must not specify schema-qualified object names such as hr.employees.",
             Map.of(
                 "file_path", prop("string", "Absolute path to the SQL file (callers must use absolute path; relative path depends on server working directory and may fail)."),
                 "connection", prop("string", "Which configured database to use. Required when multiple connections; omit when only one.")
@@ -148,9 +149,9 @@ public class McpServer {
         ));
         tools.add(tool(
             "query_to_csv_file",
-            "Execute the given SQL and write the result to a file as CSV (header + data rows, UTF-8). Format follows RFC 4180. file_path must be absolute. No confirmation dialog.",
+            "Execute the given SQL and write the result to a file as CSV (header + data rows, UTF-8). Format follows RFC 4180. file_path must be absolute. No confirmation dialog. Do not specify schema-qualified object names such as hr.employees.",
             Map.of(
-                "sql", prop("string", "SQL to run (e.g. SELECT). Single or multiple statements; last result is written."),
+                "sql", prop("string", "SQL to run (e.g. SELECT). Single or multiple statements; last result is written. Do not specify schema-qualified object names such as hr.employees."),
                 "file_path", prop("string", "Absolute path of the output CSV file."),
                 "connection", prop("string", "Which configured database to use. Required when multiple connections; omit when only one.")
             ),
@@ -158,9 +159,9 @@ public class McpServer {
         ));
         tools.add(tool(
             "query_to_text_file",
-            "Execute the given SQL and write the result to a file as plain text: no header, columns tab-separated. No extra newlines added between rows; only newlines in the cell data are written. CLOB columns are read in full. Use for procedure source or any query (including CLOB). file_path must be absolute. No confirmation dialog.",
+            "Execute the given SQL and write the result to a file as plain text: no header, columns tab-separated. No extra newlines added between rows; only newlines in the cell data are written. CLOB columns are read in full. Use for procedure source or any query (including CLOB). file_path must be absolute. No confirmation dialog. Do not specify schema-qualified object names such as hr.employees.",
             Map.of(
-                "sql", prop("string", "SQL to run (e.g. SELECT text FROM user_source ...). Single or multiple statements; last result is written."),
+                "sql", prop("string", "SQL to run (e.g. SELECT text FROM user_source ...). Single or multiple statements; last result is written. Do not specify schema-qualified object names such as hr.employees."),
                 "file_path", prop("string", "Absolute path of the output text file (e.g. .sql)."),
                 "connection", prop("string", "Which configured database to use. Required when multiple connections; omit when only one.")
             ),
@@ -286,6 +287,15 @@ public class McpServer {
         String connKey = connectionName.isEmpty() ? names.get(0) : connectionName;
         SqlAnalyzer analyzer = pool.getAnalyzer(connKey);
         AnalysisResult analysis = analyzer.analyze(sql);
+
+        if (analysis.isHasExplicitSchema()) {
+            Map<String, Object> data = new LinkedHashMap<>();
+            data.put("code", "SCHEMA_QUALIFIED_NOT_ALLOWED");
+            data.put("explicit_schemas", analysis.getExplicitSchemas() != null ? analysis.getExplicitSchemas() : List.of());
+            sendError(id, ERR_CODE_SCHEMA_QUALIFIED, "Schema-qualified object names are not allowed", data);
+            return;
+        }
+
         boolean needsConfirmation = analysis.isDangerous()
             || (config.getReview() != null && config.getReview().isAlwaysReviewDdl() && analysis.isDdl());
 
@@ -334,7 +344,8 @@ public class McpServer {
             verboseLog("[debug] Execute File Action: " + analysis.getStatementType() + ", Connection: " + displayConnection + ", File: " + path);
             sendToolResult(id, GSON.toJson(result));
         } catch (Exception e) {
-            logAudit(sql, analysis.getMatchedKeywords(), false, "EXECUTION_ERROR: " + e.getMessage(), displayConnection, dbName, schema, driver);
+            // approved=true: execution was attempted after passing confirmation (or confirmation was not required).
+            logAudit(sql, analysis.getMatchedKeywords(), true, "EXECUTION_ERROR: " + e.getMessage(), displayConnection, dbName, schema, driver);
             if (JdbcPool.isConnectionError(e)) {
                 pool.markUnavailable(connKey);
                 sendToolError(id, JdbcPool.MSG_CONNECTION_UNAVAILABLE);
@@ -366,6 +377,15 @@ public class McpServer {
 
         SqlAnalyzer analyzer = pool.getAnalyzer(connKey);
         AnalysisResult analysis = analyzer.analyze(sql);
+
+        if (analysis.isHasExplicitSchema()) {
+            Map<String, Object> data = new LinkedHashMap<>();
+            data.put("code", "SCHEMA_QUALIFIED_NOT_ALLOWED");
+            data.put("explicit_schemas", analysis.getExplicitSchemas() != null ? analysis.getExplicitSchemas() : List.of());
+            sendError(id, ERR_CODE_SCHEMA_QUALIFIED, "Schema-qualified object names are not allowed", data);
+            return;
+        }
+
         boolean needsConfirmation = analysis.isDangerous()
             || (config.getReview() != null && config.getReview().isAlwaysReviewDdl() && analysis.isDdl());
 
@@ -414,7 +434,9 @@ public class McpServer {
             verboseLog("[debug] Execute Action: " + analysis.getStatementType() + ", Connection: " + displayConnection);
             sendToolResult(id, GSON.toJson(result));
         } catch (Exception e) {
-            logAudit(sql, analysis.getMatchedKeywords(), false, "EXECUTION_ERROR: " + e.getMessage(), displayConnection, dbName, schema, driver);
+            // approved=true: execution was attempted after passing confirmation (or confirmation was not required).
+            // false would imply USER_REJECTED while an exception proves the server attempted the statement.
+            logAudit(sql, analysis.getMatchedKeywords(), true, "EXECUTION_ERROR: " + e.getMessage(), displayConnection, dbName, schema, driver);
             if (JdbcPool.isConnectionError(e)) {
                 pool.markUnavailable(connKey);
                 sendToolError(id, JdbcPool.MSG_CONNECTION_UNAVAILABLE);

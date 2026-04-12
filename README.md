@@ -29,6 +29,8 @@ Built on **MCP (Model Context Protocol)** with **Java 11 and JDBC**. Add the JDB
 
 <img src="https://www.alvinliu.com/wp-content/uploads/2026/03/db_mcp_color_bar.png" alt="db_mcp confirmation window" />
 
+**Schema protection** — AI cannot reference objects in other schemas using qualified names (e.g. `hr.employees`). All SQL must use objects belonging to the connected user's own schema.
+
 **Logging** — Optional audit log (file rotation) and stderr console log.
 
 <img src="https://www.alvinliu.com/wp-content/uploads/2026/02/db_mcp_audit_log.png" alt="db_mcp audit log" />
@@ -54,6 +56,8 @@ connections:
 - **driver** — Full JDBC driver class name (put the JAR on the classpath).
 - **url** — JDBC URL.
 - **user** / **password** — Optional if encoded in the URL.
+
+On first startup, the server automatically encrypts the plain-text `url`, `user`, and `password` values in `config.yaml`. Subsequent startups read and decrypt them transparently — no manual steps needed.
 - **db_type** (optional) — Database type for SQL parsing/formatting (Druid `DbType` name, lower case). Default `mysql` if omitted. See **db_type reference** below.
 
 Set the environment variable `DB_MCP_CONFIG` to the absolute path of the config file to override the default location.
@@ -162,6 +166,8 @@ Replace path placeholders with your actual install path and config file. **Drive
 
 <img src="https://www.alvinliu.com/wp-content/uploads/2026/03/db_mcp_color_bar.png" alt="db_mcp confirmation window" />
 
+**Schema 保护** — AI 不能通过 schema 限定名（如 `hr.employees`）访问其他 schema 的对象，只能操作当前连接用户自己 schema 下的对象。
+
 **日志** — 可选审计日志（按文件轮转）和 stderr 控制台日志。
 
 <img src="https://www.alvinliu.com/wp-content/uploads/2026/02/db_mcp_audit_log.png" alt="db_mcp 审计日志"/>
@@ -187,6 +193,8 @@ connections:
 - **driver** — JDBC 驱动完整类名（将对应 JAR 加入 classpath）。
 - **url** — JDBC URL。
 - **user** / **password** — 若 URL 中已包含可省略。
+
+首次启动时，服务端会自动将 `config.yaml` 中的明文 `url`、`user`、`password` 加密写回，后续启动透明解密，无需手动操作。
 - **db_type**（可选）— 用于 SQL 解析与格式化的数据库类型（Druid `DbType` 名，小写）。不写时默认 `mysql`。见下方 **db_type 对照**。
 
 可通过环境变量 `DB_MCP_CONFIG` 指定配置文件的绝对路径。
